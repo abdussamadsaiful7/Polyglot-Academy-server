@@ -34,11 +34,23 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
        // await client.connect();
 
-        const classCollection = client.db('polyglotDB').collection('Instructors');
+        const instructorCollection = client.db('polyglotDB').collection('instructors');
+        const classCollection = client.db('polyglotDB').collection('classes');
 
         
 
 
+        //classes
+        app.get('/classes', async(req, res)=>{
+            const result = await classCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.post('/classes', async (req, res)=>{
+            const newClass = req.body;
+            const result = await classCollection.insertOne(newClass);
+            res.send(result);
+        })
 
 
 
