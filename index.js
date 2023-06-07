@@ -37,7 +37,17 @@ async function run() {
         const instructorCollection = client.db('polyglotDB').collection('instructors');
         const classCollection = client.db('polyglotDB').collection('classes');
 
-        
+        //Instructors
+        app.get('/instructors', async(req, res)=>{
+            const result = await instructorCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.post('/instructors', async(req, res)=>{
+            const newInstructor = req.body;
+            const result =await instructorCollection.insertOne(newInstructor);
+            res.send(result);
+        })
 
 
         //classes
