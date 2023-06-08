@@ -36,6 +36,7 @@ async function run() {
 
         const instructorCollection = client.db('polyglotDB').collection('instructors');
         const classCollection = client.db('polyglotDB').collection('classes');
+        const selectCollection = client.db('polyglotDB').collection('selects');
 
         //Instructors
         app.get('/instructors', async(req, res)=>{
@@ -56,13 +57,28 @@ async function run() {
             res.send(result);
         })
 
+        // app.get('/classes/:id', async (req, res) => {
+        //     const id = req.params.id;
+        //     const query = { _id: new ObjectId(id) };
+        //     const result = await classCollection.findOne(query);
+        //     res.send(result);
+
+        // })
+
         app.post('/classes', async (req, res)=>{
             const newClass = req.body;
             const result = await classCollection.insertOne(newClass);
             res.send(result);
         })
 
-
+    
+        //select collection
+        app.post('/selects', async(req, res)=>{
+            const item = req.body;
+            console.log(item);
+            const result = await selectCollection.insertOne(item);
+            res.send(result);
+        })
 
 
 
