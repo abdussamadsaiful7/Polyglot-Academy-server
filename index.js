@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
 //polyglotAcademy
@@ -34,9 +34,17 @@ async function run() {
         // Connect the client to the server	(optional starting in v4.7)
         // await client.connect();
 
+        const userCollection = client.db('polyglotDB').collection('users');
         const instructorCollection = client.db('polyglotDB').collection('instructors');
         const classCollection = client.db('polyglotDB').collection('classes');
         const selectCollection = client.db('polyglotDB').collection('selects');
+
+        //users api
+        app.post('/users', async (req, res)=>{
+            const user = req.body;
+            const result = await userCollection.insertOne(user);
+            res.send(result);
+        })
 
         //Instructors
         app.get('/instructors', async (req, res) => {
@@ -95,7 +103,7 @@ async function run() {
         //delete
         app.delete('/selects/:id', async (req, res) => {
             const id = req.params.id;
-            const query = { _id: new ObjectId(id) }
+            const query = { _id: new ObjectId(id)}
             const result = await selectCollection.deleteOne(query)
             res.send(result);
         })
