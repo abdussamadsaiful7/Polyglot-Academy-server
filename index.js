@@ -72,7 +72,19 @@ async function run() {
         })
 
     
-        //select collection
+        //select collection api
+
+
+        app.get('/selects', async(req, res)=>{
+            const email = req.query.email;
+            if(!email){
+                res.send([])
+            }
+           const query ={email: email};
+           const result = await selectCollection.find(query).toArray();
+           res.send(result);
+        });
+
         app.post('/selects', async(req, res)=>{
             const item = req.body;
             console.log(item);
