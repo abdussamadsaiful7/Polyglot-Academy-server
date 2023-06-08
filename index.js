@@ -32,27 +32,27 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-       // await client.connect();
+        // await client.connect();
 
         const instructorCollection = client.db('polyglotDB').collection('instructors');
         const classCollection = client.db('polyglotDB').collection('classes');
         const selectCollection = client.db('polyglotDB').collection('selects');
 
         //Instructors
-        app.get('/instructors', async(req, res)=>{
+        app.get('/instructors', async (req, res) => {
             const result = await instructorCollection.find().toArray();
             res.send(result);
         })
 
-        app.post('/instructors', async(req, res)=>{
+        app.post('/instructors', async (req, res) => {
             const newInstructor = req.body;
-            const result =await instructorCollection.insertOne(newInstructor);
+            const result = await instructorCollection.insertOne(newInstructor);
             res.send(result);
         })
 
 
         //classes
-        app.get('/classes', async(req, res)=>{
+        app.get('/classes', async (req, res) => {
             const result = await classCollection.find().toArray();
             res.send(result);
         })
@@ -65,30 +65,38 @@ async function run() {
 
         // })
 
-        app.post('/classes', async (req, res)=>{
+        app.post('/classes', async (req, res) => {
             const newClass = req.body;
             const result = await classCollection.insertOne(newClass);
             res.send(result);
         })
 
-    
+
         //select collection api
 
 
-        app.get('/selects', async(req, res)=>{
+        app.get('/selects', async (req, res) => {
             const email = req.query.email;
-            if(!email){
+            if (!email) {
                 res.send([])
             }
-           const query ={email: email};
-           const result = await selectCollection.find(query).toArray();
-           res.send(result);
+            const query = { email: email };
+            const result = await selectCollection.find(query).toArray();
+            res.send(result);
         });
 
-        app.post('/selects', async(req, res)=>{
+        app.post('/selects', async (req, res) => {
             const item = req.body;
             console.log(item);
             const result = await selectCollection.insertOne(item);
+            res.send(result);
+        })
+
+        //delete
+        app.delete('/selects/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await selectCollection.deleteOne(query)
             res.send(result);
         })
 
@@ -100,7 +108,7 @@ async function run() {
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
-       // await client.close();
+        // await client.close();
     }
 }
 run().catch(console.dir);
