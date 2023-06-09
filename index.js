@@ -147,6 +147,34 @@ async function run() {
             res.send(result);
         })
 
+        
+        //student
+        app.get('/users/student/:email', verifyJWT, async(req, res)=>{
+            const email = req.params.email;
+
+            if(req.decoded.email !== email){
+                res.send({student: false})
+            }
+
+            const query = {email: email}
+            const user = await userCollection.findOne(query);
+            const result = {student: user?.role === 'student'}
+            res.send(result);
+        })
+
+
+        // user make student
+        app.patch('/users/student/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    role: 'student'
+                }
+            };
+            const result = await userCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        })
 
 
 
