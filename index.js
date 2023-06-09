@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const cors = require('cors');
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
@@ -39,29 +40,34 @@ async function run() {
         const classCollection = client.db('polyglotDB').collection('classes');
         const selectCollection = client.db('polyglotDB').collection('selects');
 
-        //users api
+        app.post('/twt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1hr' })
+            res.send({ token });
+        })
 
-        app.get('/users', async(req, res)=>{
+        //users api
+        app.get('/users', async (req, res) => {
             const result = await userCollection.find().toArray();
             res.send(result);
         })
 
-        app.post('/users', async (req, res)=>{
+        app.post('/users', async (req, res) => {
             const user = req.body;
-            const query = {email: user.email}
+            const query = { email: user.email }
             const existingUser = await userCollection.findOne(query);
-            if(existingUser){
-                return res.send({ message: 'user already exists'})
+            if (existingUser) {
+                return res.send({ message: 'user already exists' })
             }
             const result = await userCollection.insertOne(user);
             res.send(result);
         })
 
-        //admin
-        app.patch('/users/admin/:id',async (req, res)=>{
-            const id =req.params.id;
-            const filter = {_id: new ObjectId(id)}
-            const updateDoc ={
+        // make admin
+        app.patch('/users/admin/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const updateDoc = {
                 $set: {
                     role: 'admin'
                 }
@@ -70,8 +76,29 @@ async function run() {
             res.send(result);
         });
 
-       
-        //Instructors
+        // user make instructors
+        app.patch('/users/instructor/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    role: 'instructor'
+                }
+            };
+            const result = await userCollection.updateOne(filter, updateDoc);
+            res.send(result);
+        })
+
+        // //user delete
+        // app.delete('/users/:id', async (req, res) => {
+        //     const id = req.params.id;
+        //     const query = { _id: new ObjectId(id) }
+        //     const result = await userCollection.deleteOne(query)
+        //     res.send(result);
+        //   })
+
+
+        //Instructors api
         app.get('/instructors', async (req, res) => {
             const result = await instructorCollection.find().toArray();
             res.send(result);
@@ -128,7 +155,7 @@ async function run() {
         //delete
         app.delete('/selects/:id', async (req, res) => {
             const id = req.params.id;
-            const query = { _id: new ObjectId(id)}
+            const query = { _id: new ObjectId(id) }
             const result = await selectCollection.deleteOne(query)
             res.send(result);
         })
