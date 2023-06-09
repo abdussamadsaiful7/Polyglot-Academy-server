@@ -6,8 +6,7 @@ const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
-//polyglotAcademy
-//1fpSQkJQ56HN1D0g
+
 
 //middleware 
 app.use(cors());
@@ -16,6 +15,23 @@ app.use(express.json());
 app.get('/', (req, res) => {
     res.send('Language academy is running')
 })
+
+//jwt middleware
+const verifyJWT = (req, res, next)=>{
+    const authorization = req.headers.authorization;
+    if(!authorization){
+        return res.status(401).send({error: true, message: 'Unauthorized access'});
+    }
+    //bearer token
+    const token = authorization.split(' ')[1];
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded)=>{
+        if(err){
+            return res.status(401).send({error: true, message: 'Unauthorized access'})
+        }
+        req.decoded = decoded;
+        next();
+    })
+}
 
 
 
@@ -40,7 +56,7 @@ async function run() {
         const classCollection = client.db('polyglotDB').collection('classes');
         const selectCollection = client.db('polyglotDB').collection('selects');
 
-        app.post('/twt', (req, res) => {
+        app.post('/jwt', (req, res) => {
             const user = req.body;
             const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1hr' })
             res.send({ token });
@@ -60,6 +76,20 @@ async function run() {
                 return res.send({ message: 'user already exists' })
             }
             const result = await userCollection.insertOne(user);
+            res.send(result);
+        })
+
+
+        app.get('/users/admin/:email', verifyJWT, async(req, res)=>{
+            const email = req.params.email;
+
+            if(req.decoded.email !== email){
+                res.send({admin: false})
+            }
+
+            const query = {email: email}
+            const user = await userCollection.findOne(query);
+            const result = {admin: user?.role === 'admin'}
             res.send(result);
         })
 
@@ -133,13 +163,17 @@ async function run() {
 
 
         //select collection api
-
-
-        app.get('/selects', async (req, res) => {
+        app.get('/selects', verifyJWT, async (req, res) => {
             const email = req.query.email;
             if (!email) {
                 res.send([])
             }
+
+            const decodedEmail = req.decoded.email;
+            if(email !== decodedEmail){
+                return res.status(403).send({error: true, message: 'forbidden access'})
+            }
+
             const query = { email: email };
             const result = await selectCollection.find(query).toArray();
             res.send(result);
