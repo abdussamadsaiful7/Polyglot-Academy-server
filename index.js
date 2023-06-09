@@ -62,8 +62,20 @@ async function run() {
             res.send({ token });
         })
 
+        // admin middleware
+        //warning: use verifyJWT before using verifyAdmin
+        const verifyAdmin =  async(req, res, next)=>{
+            const email = req.decoded.email;
+            const query = {email: email}
+            const user = await userCollection.findOne(query);
+            if(user?.role !== 'admin' ){
+                return res.status(403).send({error: true, message: 'forbidden message'})
+            }
+            next();
+        }
+
         //users api
-        app.get('/users', async (req, res) => {
+        app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
             const result = await userCollection.find().toArray();
             res.send(result);
         })
@@ -80,6 +92,7 @@ async function run() {
         })
 
 
+        //admin
         app.get('/users/admin/:email', verifyJWT, async(req, res)=>{
             const email = req.params.email;
 
@@ -106,8 +119,23 @@ async function run() {
             res.send(result);
         });
 
-        // user make instructors
-        app.patch('/users/instructor/:id', async (req, res) => {
+
+        //instructor
+        app.get('/users/instructor/:email', verifyJWT, async(req, res)=>{
+            const email = req.params.email;
+
+            if(req.decoded.email !== email){
+                res.send({instructor: false})
+            }
+
+            const query = {email: email}
+            const user = await userCollection.findOne(query);
+            const result = {instructor: user?.role === 'instructor'}
+            res.send(result);
+        })
+
+         // user make instructors
+         app.patch('/users/instructor/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) }
             const updateDoc = {
@@ -118,6 +146,10 @@ async function run() {
             const result = await userCollection.updateOne(filter, updateDoc);
             res.send(result);
         })
+
+
+
+
 
         // //user delete
         // app.delete('/users/:id', async (req, res) => {
