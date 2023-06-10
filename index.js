@@ -131,6 +131,27 @@ async function run() {
         });
 
 
+        //approved and denied
+        app.put('/classes/approved/:id', async(req, res)=>{
+            const id = req.params.id;
+            const filterData = {_id: new ObjectId(id)};
+            const updateDoc = {$set: {status: "approved"}};
+
+            const result = await classCollection.updateOne(filterData, updateDoc);
+            res.send(result);
+        })
+
+        app.put('/classes/denied/:id', async(req, res)=>{
+            const id =req.params.id;
+            const filterData = {_id: new ObjectId(id)};
+            const updateDoc = {$set: {status: "approved"}};
+            const result = await classCollection.updateOne(filterData, updateDoc);
+            res.send(result);
+
+        })
+
+
+
         //instructor
         app.get('/users/instructor/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
@@ -182,14 +203,6 @@ async function run() {
 
         //classes
         app.get('/classes', async (req, res) => {
-            // const { seats, student } = classes;
-            // const updatedSeats = parseInt(seats) - 1;
-            // const updatedStudent = parseInt(student) + 1;
-
-            // if (updatedSeats < 0) {
-            //     res.status(400).send('No seats available');
-            //     return;
-            // }
             const result = await classCollection.find().toArray();
             res.send(result);
         })
