@@ -56,6 +56,7 @@ async function run() {
         const instructorCollection = client.db('polyglotDB').collection('instructors');
         const classCollection = client.db('polyglotDB').collection('classes');
         const selectCollection = client.db('polyglotDB').collection('selects');
+        const paymentCollection = client.db('polyglotDB').collection('payments');
 
         app.post('/jwt', (req, res) => {
             const user = req.body;
@@ -181,6 +182,14 @@ async function run() {
 
         //classes
         app.get('/classes', async (req, res) => {
+            // const { seats, student } = classes;
+            // const updatedSeats = parseInt(seats) - 1;
+            // const updatedStudent = parseInt(student) + 1;
+
+            // if (updatedSeats < 0) {
+            //     res.status(400).send('No seats available');
+            //     return;
+            // }
             const result = await classCollection.find().toArray();
             res.send(result);
         })
@@ -255,10 +264,15 @@ async function run() {
             const payment = req.body;
             const insertResult = await paymentCollection.insertOne(payment);
 
-            const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } }
-            const deleteResult = await cartCollection.deleteMany(query)
+            const query = { _id: { $in: payment.selectItems.map(id => new ObjectId(id)) } }
+            const deleteResult = await selectCollection.deleteMany(query)
 
             res.send({ insertResult, deleteResult });
+        })
+
+        app.get('/payments', async (req, res) => {
+            const result = await paymentCollection.find().toArray();
+            res.send(result);
         })
 
 
