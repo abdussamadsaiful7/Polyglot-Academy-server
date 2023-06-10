@@ -3,6 +3,7 @@ const app = express();
 const cors = require('cors');
 require('dotenv').config();
 const jwt = require('jsonwebtoken');
+const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
@@ -17,16 +18,16 @@ app.get('/', (req, res) => {
 })
 
 //jwt middleware
-const verifyJWT = (req, res, next)=>{
+const verifyJWT = (req, res, next) => {
     const authorization = req.headers.authorization;
-    if(!authorization){
-        return res.status(401).send({error: true, message: 'Unauthorized access'});
+    if (!authorization) {
+        return res.status(401).send({ error: true, message: 'Unauthorized access' });
     }
     //bearer token
     const token = authorization.split(' ')[1];
-    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded)=>{
-        if(err){
-            return res.status(401).send({error: true, message: 'Unauthorized access'})
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ error: true, message: 'Unauthorized access' })
         }
         req.decoded = decoded;
         next();
@@ -64,12 +65,21 @@ async function run() {
 
         // admin middleware
         //warning: use verifyJWT before using verifyAdmin
-        const verifyAdmin =  async(req, res, next)=>{
+        const verifyAdmin = async (req, res, next) => {
             const email = req.decoded.email;
-            const query = {email: email}
+            const query = { email: email }
             const user = await userCollection.findOne(query);
-            if(user?.role !== 'admin' ){
-                return res.status(403).send({error: true, message: 'forbidden message'})
+            if (user?.role !== 'admin') {
+                return res.status(403).send({ error: true, message: 'forbidden message' })
+            }
+            next();
+        }
+        const verifyInstructor = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email }
+            const user = await userCollection.findOne(query);
+            if (user?.role !== 'instructor') {
+                return res.status(403).send({ error: true, message: 'forbidden message' })
             }
             next();
         }
@@ -93,16 +103,16 @@ async function run() {
 
 
         //admin
-        app.get('/users/admin/:email', verifyJWT, async(req, res)=>{
+        app.get('/users/admin/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
 
-            if(req.decoded.email !== email){
-                res.send({admin: false})
+            if (req.decoded.email !== email) {
+                res.send({ admin: false })
             }
 
-            const query = {email: email}
+            const query = { email: email }
             const user = await userCollection.findOne(query);
-            const result = {admin: user?.role === 'admin'}
+            const result = { admin: user?.role === 'admin' }
             res.send(result);
         })
 
@@ -121,21 +131,21 @@ async function run() {
 
 
         //instructor
-        app.get('/users/instructor/:email', verifyJWT, async(req, res)=>{
+        app.get('/users/instructor/:email', verifyJWT, async (req, res) => {
             const email = req.params.email;
 
-            if(req.decoded.email !== email){
-                res.send({instructor: false})
+            if (req.decoded.email !== email) {
+                res.send({ instructor: false })
             }
 
-            const query = {email: email}
+            const query = { email: email }
             const user = await userCollection.findOne(query);
-            const result = {instructor: user?.role === 'instructor'}
+            const result = { instructor: user?.role === 'instructor' }
             res.send(result);
         })
 
-         // user make instructors
-         app.patch('/users/instructor/:id', async (req, res) => {
+        // user make instructors
+        app.patch('/users/instructor/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) }
             const updateDoc = {
@@ -147,45 +157,13 @@ async function run() {
             res.send(result);
         })
 
-        
-        //student
-        app.get('/users/student/:email', verifyJWT, async(req, res)=>{
-            const email = req.params.email;
-
-            if(req.decoded.email !== email){
-                res.send({student: false})
-            }
-
-            const query = {email: email}
-            const user = await userCollection.findOne(query);
-            const result = {student: user?.role === 'student'}
-            res.send(result);
-        })
-
-
-        // user make student
-        app.patch('/users/student/:id', async (req, res) => {
+        //user delete
+        app.delete('/users/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
-            const filter = { _id: new ObjectId(id) }
-            const updateDoc = {
-                $set: {
-                    role: 'student'
-                }
-            };
-            const result = await userCollection.updateOne(filter, updateDoc);
+            const query = { _id: new ObjectId(id) }
+            const result = await userCollection.deleteOne(query)
             res.send(result);
         })
-
-
-
-
-        // //user delete
-        // app.delete('/users/:id', async (req, res) => {
-        //     const id = req.params.id;
-        //     const query = { _id: new ObjectId(id) }
-        //     const result = await userCollection.deleteOne(query)
-        //     res.send(result);
-        //   })
 
 
         //Instructors api
@@ -230,8 +208,8 @@ async function run() {
             }
 
             const decodedEmail = req.decoded.email;
-            if(email !== decodedEmail){
-                return res.status(403).send({error: true, message: 'forbidden access'})
+            if (email !== decodedEmail) {
+                return res.status(403).send({ error: true, message: 'forbidden access' })
             }
 
             const query = { email: email };
@@ -253,6 +231,26 @@ async function run() {
             const result = await selectCollection.deleteOne(query)
             res.send(result);
         })
+
+
+
+
+        //create payment intent
+        app.post('/create-payment-intent', async (req, res) => {
+            const { price } = req.body;
+            const amount = price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "usd",
+                payment_method_types: ["card"]
+            })
+            res.send({
+                clientSecret: paymentIntent.client_secret
+            })
+        })
+
+
+       
 
 
 
