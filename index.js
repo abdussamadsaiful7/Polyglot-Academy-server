@@ -221,6 +221,26 @@ async function run() {
             res.send(result);
         })
 
+        app.put('/classes/:id', verifyJWT, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true }
+            const updatedCourse = req.body;
+            const course = {
+                $set: {
+                    ClassName: updatedCourse.ClassName,
+                    instructorName: updatedCourse.instructorName,
+                    email: updatedCourse.email,
+                    price: updatedCourse.price,
+                    seats: updatedCourse.seats,
+                    student: updatedCourse.student,
+                }
+            }
+            const result = await classCollection.updateOne(filter, course, options)
+            res.send(result);
+        })
+
+
 
         //select collection api
         app.get('/selects', verifyJWT, async (req, res) => {
