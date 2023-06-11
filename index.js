@@ -132,19 +132,19 @@ async function run() {
 
 
         //approved and denied
-        app.put('/classes/approved/:id', async(req, res)=>{
+        app.put('/approved/:id', async (req, res) => {
             const id = req.params.id;
-            const filterData = {_id: new ObjectId(id)};
-            const updateDoc = {$set: {status: "approved"}};
+            const filterData = { _id: new ObjectId(id) };
+            const updateDoc = { $set: { status: "approved" } };
 
             const result = await classCollection.updateOne(filterData, updateDoc);
             res.send(result);
         })
 
-        app.put('/classes/denied/:id', async(req, res)=>{
-            const id =req.params.id;
-            const filterData = {_id: new ObjectId(id)};
-            const updateDoc = {$set: {status: "approved"}};
+        app.put('/denied/:id', async (req, res) => {
+            const id = req.params.id;
+            const filterData = { _id: new ObjectId(id) };
+            const updateDoc = { $set: { status: "denied" } };
             const result = await classCollection.updateOne(filterData, updateDoc);
             res.send(result);
 
@@ -252,6 +252,26 @@ async function run() {
             const query = { _id: new ObjectId(id) }
             const result = await selectCollection.deleteOne(query)
             res.send(result);
+        })
+
+
+
+        app.get('/admin-stats', verifyJWT, verifyAdmin, async (req, res) => {
+            const users = await userCollection.estimatedDocumentCount();
+            const classes = await classCollection.estimatedDocumentCount();
+            const pays = await paymentCollection.estimatedDocumentCount();
+
+            //best way to get sum of a the price field is to use group and sum operator
+
+            const payments = await paymentCollection.find().toArray();
+            const revenue = payments.reduce((sum, payment) => sum + payment.price, 0)
+
+            res.send({
+                users,
+                classes,
+                pays,
+                revenue
+            })
         })
 
 
