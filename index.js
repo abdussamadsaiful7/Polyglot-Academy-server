@@ -290,8 +290,19 @@ async function run() {
 
             //best way to get sum of a the price field is to use group and sum operator
 
-            const payments = await paymentCollection.find().toArray();
-            const revenue = payments.reduce((sum, payment) => sum + payment.price, 0)
+            const totalPayments = await paymentCollection.aggregate([
+                {
+                    $group: {
+                        _id: null,
+                        total: { $sum: { $toInt: "$price" } } // Convert price field to integer if it's stored as a string
+                    }
+                }
+            ]).toArray();
+
+            const revenue = totalPayments.length > 0 ? totalPayments[0].total : 0;
+
+           // const payments = await paymentCollection.find().toArray();
+           // const revenue = payments.reduce((sum, payment) => sum + payment.price, 0)
 
             res.send({
                 users,
@@ -347,7 +358,11 @@ async function run() {
 
 
         app.get('/payments', async (req, res) => {
-            const result = await paymentCollection.find().toArray();
+            const query = {};
+            const options = {
+                sort: { "date": -1 }
+            }
+            const result = await paymentCollection.find(query, options).toArray();
             res.send(result);
         })
 
