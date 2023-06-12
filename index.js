@@ -7,7 +7,7 @@ const stripe = require('stripe')(process.env.PAYMENT_SECRET_KEY)
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const port = process.env.PORT || 5000;
 
-
+//console.log(process.env.PAYMENT_SECRET_KEY)
 
 //middleware 
 app.use(cors());
@@ -221,7 +221,7 @@ async function run() {
             res.send(result);
         })
 
-        app.put('/classes/:id', verifyJWT, verifyAdmin, async (req, res) => {
+        app.put('/classes/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
             const options = { upsert: true }
@@ -258,6 +258,13 @@ async function run() {
             const result = await selectCollection.find(query).toArray();
             res.send(result);
         });
+
+        app.get('/selects/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const result = await selectCollection.findOne(query);
+            res.send(result)
+        })
 
         app.post('/selects', async (req, res) => {
             const item = req.body;
@@ -313,15 +320,31 @@ async function run() {
 
 
         //payment related api
+        // app.post('/payments',  async (req, res) => {
+        //     const payment = req.body;
+        //     console.log(payment)
+        //     const insertResult = await paymentCollection.insertOne(payment);
+
+        //     const query = { _id: { $in: payment.selectItems.map(id => new ObjectId(id)) } }
+        //     const deleteResult = await selectCollection.deleteOne(query)
+
+        //     res.send({ insertResult, deleteResult });
+        // })
+
         app.post('/payments', verifyJWT, async (req, res) => {
-            const payment = req.body;
-            const insertResult = await paymentCollection.insertOne(payment);
+            const payment = req.body
+            payment.date = new Date()
+            const id = payment.selectedId
+            const insertResult = await paymentCollection.insertOne(payment)
 
-            const query = { _id: { $in: payment.selectItems.map(id => new ObjectId(id)) } }
-            const deleteResult = await selectCollection.deleteMany(query)
+            const query = { _id: new ObjectId(id) }
+            const deleteResult = await selectCollection.deleteOne(query)
 
-            res.send({ insertResult, deleteResult });
+            res.send({ insertResult, deleteResult })
         })
+
+
+
 
         app.get('/payments', async (req, res) => {
             const result = await paymentCollection.find().toArray();
@@ -341,13 +364,6 @@ async function run() {
     }
 }
 run().catch(console.dir);
-
-
-
-
-
-
-
 
 
 
