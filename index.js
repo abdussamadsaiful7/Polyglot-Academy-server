@@ -366,6 +366,21 @@ async function run() {
             res.send(result);
         })
 
+        app.put('/updateClass/:id', async(req, res)=>{
+            const id = req.params.id;
+            const {seats, student} = req.body;
+            const filter = {_id: new ObjectId(id)}
+            const updateDoc = {
+                $set:{
+                    seats: seats,
+                    student: student,
+                },
+            }
+
+            const result = await classCollection.updateOne(filter, updateDoc )
+            res.send(result)
+        })
+
 
 
 
